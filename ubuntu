@@ -57,7 +57,7 @@ fi
 # update sshd_config
 if [[ -z $(sudo cat /etc/ssh/sshd_config | grep 'damon') ]]; then
   echo "Update sshd_config"
-  sudo cp -p /etc/ssh/sshd_config /etc/ssh/sshd_config.old
+  sudo cp -p /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
   sudo sed -ri 's/^#?Port .*/Port 57400/' /etc/ssh/sshd_config
   sudo sed -ri 's/^#?PermitRootLogin .*/PermitRootLogin no/' /etc/ssh/sshd_config
   sudo sed -ri 's/^#?PubkeyAuthentication .*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
@@ -94,7 +94,8 @@ fi
 echo "Setup samba"
 if [[ -z $(sudo cat /etc/samba/smb.conf | grep 'alpha') ]]; then
   echo "Update smb.conf"
-  sudo -- bash -c 'echo  "   guest account = damon" >> /etc/samba/smb.conf'
+  sudo cp -p /etc/samba/smb.conf /etc/samba/smb.conf.orig
+  sudo sed -ri 's/^   map to guest = bad user.*/   map to guest = bad user\n   guest account = damon/' /etc/samba/smb.conf
   sudo -- bash -c 'echo  "" >> /etc/samba/smb.conf'
   sudo -- bash -c 'echo  "[buffalo]" >> /etc/samba/smb.conf'
   sudo -- bash -c 'echo  "  comment = Buffalo" >> /etc/samba/smb.conf'

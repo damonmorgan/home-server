@@ -1,7 +1,7 @@
 Damon Morgan Home Server
 ========================
 
-Setup home server
+Setup home server on Ubuntu 20.04
 
 Installation
 ------------

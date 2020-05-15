@@ -24,7 +24,7 @@ if [[ -z $(docker --version | grep 'Docker version') ]]; then
 
   sudo add-apt-repository \
    "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-   disco \
+   $(lsb_release -cs) \
    stable"
 
   sudo apt-get update

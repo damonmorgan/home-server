@@ -89,6 +89,8 @@ if [[ -z $(sudo cat /etc/fstab | grep 'alpha') ]]; then
   sudo sed -i "\$a/dev/disk/by-uuid/91f79fb4-6a01-4dbf-88f7-01b493af192f /media/wdred-alpha ext4 defaults 0 2" /etc/fstab
   sudo sed -i "\$a/dev/disk/by-uuid/02459b4b-6fbd-4edc-8f1e-8450fa3d55ee /media/wdred-bravo ext4 defaults 0 2" /etc/fstab
   sudo sed -i "\$a/dev/disk/by-uuid/40678ee1-1a47-4e6f-baca-7d1befeb99c5 /media/wdred-charlie ext4 defaults 0 2" /etc/fstab
+
+  sudo mount -a
 fi
 
 # setup nfs
@@ -129,6 +131,15 @@ fi
 
 # setup wireguard
 echo "Setup wireguard"
+if [[ -z $(sudo cat /etc/wireguard/wg0.conf | grep 'Interface') ]]; then
+  sudo cp /media/wdred-alpha/wireguard-config/wg0.conf /etc/wireguard/wg0.conf
+  sudo chown -v root:root /etc/wireguard/wg0.conf
+  sudo chmod -v 600 /etc/wireguard/wg0.conf
+  sudo systemctl enable wg-quick@wg0
+  wg-quick up wg0
+fi
+sudo wg show
+
 
 echo "cleanup"
 sudo apt-get autoremove

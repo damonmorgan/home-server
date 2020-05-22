@@ -8,7 +8,7 @@ Installation
 
   bash <(curl -s https://raw.githubusercontent.com/damonmorgan/home-server/master/ubuntu)
 
-What is installed
+What is installed and configured
 -----------------
 
 * docker and docker-compose
@@ -17,3 +17,4 @@ What is installed
 * wireguard server
 * sshd
 * fstab
+* avahi

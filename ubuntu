@@ -16,7 +16,8 @@ sudo apt-get install \
   wireguard \
   rpcbind \
   nfs-kernel-server \
-  samba
+  samba \
+  avahi-daemon
 
 if [[ -z $(docker --version | grep 'Docker version') ]]; then
   echo "Install Docker"

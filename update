@@ -15,4 +15,3 @@ docker-compose pull
 docker-compose up --remove-orphans -d
 docker system prune --force --all
 docker volume prune --force
-

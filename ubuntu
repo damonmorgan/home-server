@@ -18,6 +18,18 @@ sudo apt-get install \
   nfs-kernel-server \
   samba
 
+#echo "Turn off DNS Stub Resolver"
+if [[ -z $(sudo cat /etc/systemd/resolved.conf | grep 'DNSStubListener=no') ]]; then
+  sudo systemctl stop systemd-resolved
+
+  sudo sed -ri 's/^#?DNS=.*/DNS=1.1.1.3/' /etc/systemd/resolved.conf
+  sudo sed -ri 's/^#?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
+  sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+  sudo systemctl start systemd-resolved
+fi
+
+
 if [[ -z $(docker --version | grep 'Docker version') ]]; then
   echo "Install Docker"
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -

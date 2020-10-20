@@ -1,0 +1,40 @@
+#!/bin/bash
+
+cd ~
+
+#echo "Turn off DNS Stub Resolver"
+if [[ -z $(sudo cat /etc/systemd/resolved.conf | grep 'DNSStubListener=no') ]]; then
+  sudo systemctl stop systemd-resolved
+
+  sudo sed -ri 's/^#?DNS=.*/DNS=1.1.1.1/' /etc/systemd/resolved.conf
+  sudo sed -ri 's/^#?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
+  sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+  sudo systemctl start systemd-resolved
+fi
+
+
+if [[ -z $(ls | grep 'entertainer') ]]; then
+  echo "Clone Repos"
+  git clone https://github.com/damonmorgan/home-server.git
+  git clone https://github.com/damonmorgan/entertainer.git
+  cd ~/entertainer
+  cat <<EOT >> .env
+CONTAINERS_CONFIG_PATH=/media/wdred-alpha/entertainer-config
+TV_DESTINATION_PATH=/media/wdred-bravo/Entertainment/TV
+MOVIE_DESTINATION_PATH=/media/wdred-charlie/Entertainment/HD-Movies-Downloaded
+PROCESSING_PATH=/home/damon/entertainer
+BACKUP_PATH=/media
+PGID=1000
+PUID=1000
+TZ="Europe/London"
+EOT
+  cd ~
+else
+  echo "Update Repos"
+  cd ~/home-server
+  git pull
+  cd ~/entertainer
+  git pull
+  cd ~
+fi

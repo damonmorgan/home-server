@@ -1,0 +1,63 @@
+#!/bin/bash
+
+if [ "$USER" != "root" ]; then
+  cd ~
+
+  if [[ -z $(dpkg -l | grep 'samba') ]]; then
+    echo "Ensure required tools installed"
+    sudo apt-get install \
+      rpcbind \
+      nfs-kernel-server \
+      samba
+  fi
+
+  # setup fstab
+  if [[ -z $(sudo cat /etc/fstab | grep 'alpha') ]]; then
+    echo "Update fstab"
+    sudo mkdir /media/wdred-alpha
+    sudo mkdir /media/wdred-bravo
+    sudo mkdir /media/wdred-charlie
+
+    sudo sed -i "\$a/dev/disk/by-uuid/91f79fb4-6a01-4dbf-88f7-01b493af192f /media/wdred-alpha ext4 defaults 0 2" /etc/fstab
+    sudo sed -i "\$a/dev/disk/by-uuid/02459b4b-6fbd-4edc-8f1e-8450fa3d55ee /media/wdred-bravo ext4 defaults 0 2" /etc/fstab
+    sudo sed -i "\$a/dev/disk/by-uuid/40678ee1-1a47-4e6f-baca-7d1befeb99c5 /media/wdred-charlie ext4 defaults 0 2" /etc/fstab
+
+    sudo mount -a
+  fi
+
+  # setup nfs
+  echo "Setup nfs"
+  if [[ -z $(sudo cat /etc/exports | grep 'alpha') ]]; then
+    echo "Update exports"
+    sudo touch /etc/exports
+    sudo sed -i "\$a/media/wdred-alpha 192.168.0.0/255.255.255.0(rw,async,insecure,no_subtree_check,all_squash,anonuid=1000,anongid=1000)" /etc/exports
+    sudo sed -i "\$a/media/wdred-bravo 192.168.0.0/255.255.255.0(rw,async,insecure,no_subtree_check,all_squash,anonuid=1000,anongid=1000)" /etc/exports
+    sudo sed -i "\$a/media/wdred-charlie 192.168.0.0/255.255.255.0(rw,async,insecure,no_subtree_check,all_squash,anonuid=1000,anongid=1000)" /etc/exports
+    sudo systemctl start nfs-kernel-server.service
+  fi
+
+  # setup samba
+  echo "Setup samba"
+  if [[ -z $(sudo cat /etc/samba/smb.conf | grep 'alpha') ]]; then
+    echo "Update smb.conf"
+    sudo cp -p /etc/samba/smb.conf /etc/samba/smb.conf.orig
+    sudo sed -ri 's/^   map to guest = bad user.*/   map to guest = bad user\n   guest account = damon/' /etc/samba/smb.conf
+    sudo -- bash -c 'echo  "" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "[buffalo]" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "  comment = Buffalo" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "  path = /media/wdred-alpha/buffalo" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "  read only = no" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "  browsable = yes" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "  guest only = yes" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "  guest ok = yes" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "[maxtor]" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "  comment = Maxtor" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "  path = /media/wdred-alpha/maxtor" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "  read only = no" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "  browsable = yes" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "  guest only = yes" >> /etc/samba/smb.conf'
+    sudo -- bash -c 'echo  "  guest ok = yes" >> /etc/samba/smb.conf'
+    sudo service smbd restart
+  fi
+fi

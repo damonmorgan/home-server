@@ -17,4 +17,3 @@ What is installed and configured
 * wireguard server
 * sshd
 * fstab
-* avahi

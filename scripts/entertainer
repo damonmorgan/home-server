@@ -1,40 +1,65 @@
 #!/bin/bash
 
-cd ~
+if [ "$USER" != "root" ]; then
+  cd ~
 
-#echo "Turn off DNS Stub Resolver"
-if [[ -z $(sudo cat /etc/systemd/resolved.conf | grep 'DNSStubListener=no') ]]; then
-  sudo systemctl stop systemd-resolved
+  if [[ -z $(dpkg -l | grep 'jq') ]]; then
+    echo "Ensure required tools installed"
+    sudo apt-get update
+    sudo apt-get -y install \
+      sqlite3
+  fi
 
-  sudo sed -ri 's/^#?DNS=.*/DNS=1.1.1.1/' /etc/systemd/resolved.conf
-  sudo sed -ri 's/^#?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
-  sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+  #echo "Turn off DNS Stub Resolver for pihole"
+  if [[ -z $(sudo cat /etc/systemd/resolved.conf | grep 'DNSStubListener=no') ]]; then
+    sudo systemctl stop systemd-resolved
 
-  sudo systemctl start systemd-resolved
-fi
+    sudo sed -ri 's/^#?DNS=.*/DNS=1.1.1.1/' /etc/systemd/resolved.conf
+    sudo sed -ri 's/^#?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
+    sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 
+    sudo systemctl start systemd-resolved
+  fi
 
-if [[ -z $(ls | grep 'entertainer') ]]; then
-  echo "Clone Repos"
-  git clone https://github.com/damonmorgan/home-server.git
-  git clone https://github.com/damonmorgan/entertainer.git
-  cd ~/entertainer
-  cat <<EOT >> .env
+  if [[ -z $(ls | grep 'entertainer') ]]; then
+    echo "Clone Repos"
+    git clone https://github.com/damonmorgan/entertainer.git
+    cd ~/entertainer
+    cat <<EOT >> .env
 CONTAINERS_CONFIG_PATH=/media/wdred-alpha/entertainer-config
 TV_DESTINATION_PATH=/media/wdred-bravo/Entertainment/TV
 MOVIE_DESTINATION_PATH=/media/wdred-charlie/Entertainment/HD-Movies-Downloaded
 PROCESSING_PATH=/home/damon/entertainer
 BACKUP_PATH=/media
-PGID=1000
-PUID=1000
+PGID=$(id -g $USER)
+PUID=$UID
 TZ="Europe/London"
 EOT
-  cd ~
-else
-  echo "Update Repos"
-  cd ~/home-server
-  git pull
+  fi
+
+  echo "Update Repo"
   cd ~/entertainer
   git pull
-  cd ~
+
+  COMPOSE_FIRST_RUN='n'
+  if [[ -z $(docker ps | grep 'pihole') ]]; then
+    COMPOSE_FIRST_RUN='Y'
+  fi
+  docker-compose pull
+  docker-compose up --remove-orphans -d
+  docker system prune --force --all
+  docker volume prune --force
+  if [ "$COMPOSE_FIRST_RUN" == "Y" ]; then
+    SERVER_IP=$(ip addr sh $(ip route sh | awk '$1 == "default" { print $5 }') | grep 'inet ' | xargs | awk -F'[ /]' '{ print $2 }')
+    docker exec pihole pihole -a addcustomdns $SERVER_IP pi.hole
+    docker exec pihole pihole -a addcustomdns $SERVER_IP traefik.lan
+    docker exec pihole pihole -a addcustomdns $SERVER_IP heimdall.lan
+    docker exec pihole pihole -a addcustomdns $SERVER_IP sonarr.lan
+    docker exec pihole pihole -a addcustomdns $SERVER_IP jackett.lan
+    docker exec pihole pihole -a addcustomdns $SERVER_IP transmission.lan
+    docker exec pihole pihole -a addcustomdns $SERVER_IP crashplan.lan
+    docker restart pihole
+  fi
+else
+  echo "Logged in as root. Please login as a sudo user"
 fi

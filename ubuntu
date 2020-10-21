@@ -3,156 +3,20 @@
 cd ~
 
 echo "Updating and Upgrading"
-sudo apt-get update && sudo apt-get upgrade -y
-
-echo "Ensure required tools installed"
-sudo apt-get install \
-  apt-transport-https \
-  ca-certificates \
-  curl \
-  gnupg-agent \
-  software-properties-common \
-  jq \
-  wireguard \
-  rpcbind \
-  nfs-kernel-server \
-  samba
-
-#echo "Turn off DNS Stub Resolver"
-if [[ -z $(sudo cat /etc/systemd/resolved.conf | grep 'DNSStubListener=no') ]]; then
-  sudo systemctl stop systemd-resolved
-
-  sudo sed -ri 's/^#?DNS=.*/DNS=1.1.1.1/' /etc/systemd/resolved.conf
-  sudo sed -ri 's/^#?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
-  sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-
-  sudo systemctl start systemd-resolved
-fi
-
-
-if [[ -z $(docker --version | grep 'Docker version') ]]; then
-  echo "Install Docker"
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-
-  sudo add-apt-repository \
-   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-   $(lsb_release -cs) \
-   stable"
-
-  sudo apt-get update
-  sudo apt-get install docker-ce docker-ce-cli containerd.io
-
-  sudo groupadd docker
-  sudo usermod -aG docker $USER
-
-  sudo systemctl enable docker
-
-  LATEST_VERSION=$(curl --silent https://api.github.com/repos/docker/compose/releases/latest | jq .name -r)
-  sudo curl -L "https://github.com/docker/compose/releases/download/${LATEST_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-
-  sudo chmod +x /usr/local/bin/docker-compose
-fi
-
-if [[ -z $(ls | grep 'entertainer') ]]; then
-  echo "Clone Repos"
-  git clone https://github.com/damonmorgan/home-server.git
-  git clone https://github.com/damonmorgan/entertainer.git
-  cd ~/entertainer
-  cat <<EOT >> .env
-CONTAINERS_CONFIG_PATH=/media/wdred-alpha/entertainer-config
-TV_DESTINATION_PATH=/media/wdred-bravo/Entertainment/TV
-MOVIE_DESTINATION_PATH=/media/wdred-charlie/Entertainment/HD-Movies-Downloaded
-PROCESSING_PATH=/home/damon/entertainer
-BACKUP_PATH=/media
-PGID=1000
-PUID=1000
-TZ="Europe/London"
-EOT
-  cd ~
+if [ "$USER" == "root" ]; then
+  sudo apt-get update && sudo apt-get full-upgrade -y
 else
-  echo "Update Repos"
-  cd ~/home-server
-  git pull
-  cd ~/entertainer
-  git pull
-  cd ~
+  sudo apt-get update && sudo apt-get upgrade -y
 fi
 
-# update sshd_config
-if [[ -z $(sudo cat /etc/ssh/sshd_config | grep 'damon') ]]; then
-  echo "Update sshd_config"
-  sudo cp -p /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
-  sudo sed -ri 's/^#?Port .*/Port 57400/' /etc/ssh/sshd_config
-  sudo sed -ri 's/^#?PermitRootLogin .*/PermitRootLogin no/' /etc/ssh/sshd_config
-  sudo sed -ri 's/^#?PubkeyAuthentication .*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
-  sudo sed -ri 's/^#?PasswordAuthentication .*/PasswordAuthentication no/' /etc/ssh/sshd_config
-  sudo sed -i "\$aAllowUsers damon" /etc/ssh/sshd_config
-  sudo sed -i "\$aProtocol 2" /etc/ssh/sshd_config
-  sudo service ssh restart
+bash <(curl -s https://raw.githubusercontent.com/damonmorgan/home-server/master/scripts/user)
+bash <(curl -s https://raw.githubusercontent.com/damonmorgan/home-server/master/scripts/ssh)
+bash <(curl -s https://raw.githubusercontent.com/damonmorgan/home-server/master/scripts/docker)
+bash <(curl -s https://raw.githubusercontent.com/damonmorgan/home-server/master/scripts/storage)
+if [[ -z $(dpkg -l | grep 'wireguard-tools') ]]; then
+  bash <(curl -s https://raw.githubusercontent.com/damonmorgan/home-server/master/scripts/wireguard)
 fi
-
-# setup fstab
-if [[ -z $(sudo cat /etc/fstab | grep 'alpha') ]]; then
-  echo "Update fstab"
-  sudo mkdir /media/wdred-alpha
-  sudo mkdir /media/wdred-bravo
-  sudo mkdir /media/wdred-charlie
-
-  sudo sed -i "\$a/dev/disk/by-uuid/91f79fb4-6a01-4dbf-88f7-01b493af192f /media/wdred-alpha ext4 defaults 0 2" /etc/fstab
-  sudo sed -i "\$a/dev/disk/by-uuid/02459b4b-6fbd-4edc-8f1e-8450fa3d55ee /media/wdred-bravo ext4 defaults 0 2" /etc/fstab
-  sudo sed -i "\$a/dev/disk/by-uuid/40678ee1-1a47-4e6f-baca-7d1befeb99c5 /media/wdred-charlie ext4 defaults 0 2" /etc/fstab
-
-  sudo mount -a
-fi
-
-# setup nfs
-echo "Setup nfs"
-if [[ -z $(sudo cat /etc/exports | grep 'alpha') ]]; then
-  echo "Update exports"
-  sudo touch /etc/exports
-  sudo sed -i "\$a/media/wdred-alpha 192.168.0.0/255.255.255.0(rw,async,insecure,no_subtree_check,all_squash,anonuid=1000,anongid=1000)" /etc/exports
-  sudo sed -i "\$a/media/wdred-bravo 192.168.0.0/255.255.255.0(rw,async,insecure,no_subtree_check,all_squash,anonuid=1000,anongid=1000)" /etc/exports
-  sudo sed -i "\$a/media/wdred-charlie 192.168.0.0/255.255.255.0(rw,async,insecure,no_subtree_check,all_squash,anonuid=1000,anongid=1000)" /etc/exports
-  sudo systemctl start nfs-kernel-server.service
-fi
-
-# setup samba
-echo "Setup samba"
-if [[ -z $(sudo cat /etc/samba/smb.conf | grep 'alpha') ]]; then
-  echo "Update smb.conf"
-  sudo cp -p /etc/samba/smb.conf /etc/samba/smb.conf.orig
-  sudo sed -ri 's/^   map to guest = bad user.*/   map to guest = bad user\n   guest account = damon/' /etc/samba/smb.conf
-  sudo -- bash -c 'echo  "" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "[buffalo]" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "  comment = Buffalo" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "  path = /media/wdred-alpha/buffalo" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "  read only = no" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "  browsable = yes" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "  guest only = yes" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "  guest ok = yes" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "[maxtor]" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "  comment = Maxtor" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "  path = /media/wdred-alpha/maxtor" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "  read only = no" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "  browsable = yes" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "  guest only = yes" >> /etc/samba/smb.conf'
-  sudo -- bash -c 'echo  "  guest ok = yes" >> /etc/samba/smb.conf'
-  sudo service smbd restart
-fi
-
-# setup wireguard
-echo "Setup wireguard"
-if [[ -z $(sudo cat /etc/wireguard/wg0.conf | grep 'Interface') ]]; then
-  sudo cp /media/wdred-alpha/wireguard-config/wg0.conf /etc/wireguard/wg0.conf
-  sudo chown -v root:root /etc/wireguard/wg0.conf
-  sudo chmod -v 600 /etc/wireguard/wg0.conf
-  sudo systemctl enable wg-quick@wg0
-  sudo systemctl daemon-reload
-  sudo systemctl start wg-quick@wg0
-fi
-sudo wg show
-
+bash <(curl -s https://raw.githubusercontent.com/damonmorgan/home-server/master/scripts/entertainer)
 
 echo "cleanup"
 sudo apt-get autoremove

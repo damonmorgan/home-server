@@ -26,8 +26,8 @@ if [ "$USER" != "root" ]; then
   fi
 
   # setup nfs
-  echo "Setup nfs"
   if [[ -z $(sudo cat /etc/exports | grep 'alpha') ]]; then
+    echo "Setup nfs"
     echo "Update exports"
     sudo touch /etc/exports
     sudo sed -i "\$a/media/wdred-alpha 192.168.0.0/255.255.255.0(rw,async,insecure,no_subtree_check,all_squash,anonuid=1000,anongid=1000)" /etc/exports
@@ -37,8 +37,8 @@ if [ "$USER" != "root" ]; then
   fi
 
   # setup samba
-  echo "Setup samba"
   if [[ -z $(sudo cat /etc/samba/smb.conf | grep 'alpha') ]]; then
+    echo "Setup samba"
     echo "Update smb.conf"
     sudo cp -p /etc/samba/smb.conf /etc/samba/smb.conf.orig
     sudo sed -ri 's/^   map to guest = bad user.*/   map to guest = bad user\n   guest account = damon/' /etc/samba/smb.conf

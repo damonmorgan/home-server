@@ -8,6 +8,11 @@ Installation
 
   bash <(curl -s https://raw.githubusercontent.com/damonmorgan/home-server/master/ubuntu)
 
+To add another wireguard client
+------------
+
+  bash <(curl -s https://raw.githubusercontent.com/damonmorgan/home-server/master/scripts/wireguard)
+
 What is installed and configured
 -----------------
 
@@ -17,3 +22,4 @@ What is installed and configured
 * wireguard server
 * sshd
 * fstab
+* entertainer (https://github.com/damonmorgan/entertainer)

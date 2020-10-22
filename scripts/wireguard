@@ -16,8 +16,15 @@ if [ "$USER" != "root" ]; then
 
   cd /media/wdred-alpha/wireguard-config
 
-  wget https://raw.githubusercontent.com/burghardt/easy-wg-quick/master/easy-wg-quick
+  wget https://raw.githubusercontent.com/burghardt/easy-wg-quick/master/easy-wg-quick -O easy-wg-quick
   chmod +x easy-wg-quick
+
+  if [[ -z $(ls | grep 'portno') ]]; then
+    read -p 'Wireguard Port (leave blank for random): ' WIREGUARD_PORT
+    if [ -n "$WIREGUARD_PORT" ]; then
+      echo $WIREGUARD_PORT > portno.txt
+    fi
+  fi
 
   if [[ -z $(ls | grep 'intnetdns') ]]; then
     read -p 'Use local dns for wireguard clients? (Y/n) ' USE_LOCAL_DNS

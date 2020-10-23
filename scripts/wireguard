@@ -19,7 +19,11 @@ if [ "$USER" != "root" ]; then
   wget https://raw.githubusercontent.com/burghardt/easy-wg-quick/master/easy-wg-quick -O easy-wg-quick
   chmod +x easy-wg-quick
 
-  if [[ -z $(ls | grep 'portno') ]]; then
+  if [[ ! -f "extnetip.txt" ]]; then
+    curl ifconfig.co/ip > extnetip.txt
+  fi
+
+  if [[ ! -f "portno.txt" ]]; then
     read -p 'Wireguard Port (leave blank for random): ' WIREGUARD_PORT
     if [ -n "$WIREGUARD_PORT" ]; then
       echo $WIREGUARD_PORT > portno.txt
@@ -27,10 +31,11 @@ if [ "$USER" != "root" ]; then
   fi
 
   read -p 'Use local dns for wireguard clients? (Y/n) ' USE_LOCAL_DNS
+  if [[ -f "intnetdns.txt" ]]; then
+    rm intnetdns.txt
+  fi
   if [ "$USE_LOCAL_DNS" == "Y" ]; then
     ip addr sh $(ip route sh | awk '$1 == "default" { print $5 }') | grep 'inet ' | xargs | awk -F'[ /]' '{ print $2 }' > intnetdns.txt
-  else
-    rm intnetdns.txt
   fi
 
   read -p 'Wireguard Client Name: ' WG_CLIENT_NAME

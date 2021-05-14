@@ -20,7 +20,12 @@ if [ "$USER" != "root" ]; then
   chmod +x easy-wg-quick
 
   if [[ ! -f "extnetip.txt" ]]; then
-    curl ifconfig.co/ip > extnetip.txt
+    read -p 'External IP or DynDNS address (leave blank to discover): ' WIREGUARD_IP
+    if [ -n "$WIREGUARD_IP" ]; then
+      echo $WIREGUARD_IP > extnetip.txt
+    else
+      curl ifconfig.co/ip > extnetip.txt
+    fi
   fi
 
   if [[ ! -f "portno.txt" ]]; then

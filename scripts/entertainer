@@ -58,6 +58,10 @@ EOT
     docker exec pihole pihole -a addcustomdns $SERVER_IP jackett.lan
     docker exec pihole pihole -a addcustomdns $SERVER_IP transmission.lan
     docker exec pihole pihole -a addcustomdns $SERVER_IP crashplan.lan
+    docker exec pihole pihole -a addcustomdns $SERVER_IP speed.lan
+    docker exec pihole pihole -a addcustomdns $SERVER_IP grafana.lan
+    docker exec pihole pihole -a addcustomdns $SERVER_IP prometheus.lan
+    docker exec pihole pihole -a addcustomdns $SERVER_IP wireguard.lan
     docker restart pihole
   fi
 else

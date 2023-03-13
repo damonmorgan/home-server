@@ -21,6 +21,14 @@ if [ "$USER" != "root" ]; then
     sudo systemctl start systemd-resolved
   fi
 
+  #echo "allow greater file watches for crashplan"
+  if [[ -z $(sudo cat /etc/sysctl.conf | grep 'fs.inotify.max_user_watches=1048576') ]]; then
+
+    sudo echo "fs.inotify.max_user_watches=1048576" >> /etc/sysctl.conf
+
+    sudo sysctl -p
+  fi
+
   if [[ -z $(ls | grep 'entertainer') ]]; then
     echo "Clone Repos"
     git clone https://github.com/damonmorgan/entertainer.git

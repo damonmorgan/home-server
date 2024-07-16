@@ -36,11 +36,12 @@ if [ "$USER" != "root" ]; then
   fi
 
   read -p 'Use local dns for wireguard clients? (Y/n) ' USE_LOCAL_DNS
-  if [[ -f "intnetdns.txt" ]]; then
-    rm intnetdns.txt
-  fi
+  rm intnetdns.txt
+  rm intnet6dns.txt
+
   if [ "$USE_LOCAL_DNS" == "Y" ]; then
     ip addr sh $(ip route sh | awk '$1 == "default" { print $5 }') | grep 'inet ' | xargs | awk -F'[ /]' '{ print $2 }' > intnetdns.txt
+    touch intnet6dns.txt
   fi
 
   read -p 'Wireguard Client Name: ' WG_CLIENT_NAME

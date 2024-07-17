@@ -19,12 +19,45 @@ if [ "$USER" != "root" ]; then
   wget https://raw.githubusercontent.com/burghardt/easy-wg-quick/master/easy-wg-quick -O easy-wg-quick
   chmod +x easy-wg-quick
 
-  if [[ ! -f "extnetip.txt" ]]; then
-    read -p 'External IP or DynDNS address (leave blank to discover): ' WIREGUARD_IP
-    if [ -n "$WIREGUARD_IP" ]; then
-      echo $WIREGUARD_IP > extnetip.txt
+  if [[ ! -f "extnetip4dns.txt" ]]; then
+    read -p 'External IPv4 DynDNS address: ' WIREGUARD_IP4DNS
+    if [ -n "$WIREGUARD_IP4DNS" ]; then
+      echo $WIREGUARD_IP4DNS > extnetip4dns.txt
+    fi
+  fi
+
+  if [[ ! -f "extnetip6dns.txt" ]]; then
+    read -p 'External IPv6 DynDNS address: ' WIREGUARD_IP6DNS
+    if [ -n "$WIREGUARD_IP6DNS" ]; then
+      echo $WIREGUARD_IP6DNS > extnetip6dns.txt
+    fi
+  fi
+
+  rm extnetip.txt
+  read -p 'Use IPv6? (Y/n): ' USE_IPV6
+  if [ "$USE_IPV6" == "Y" ]; then
+    read -p 'Use DYNDNS? (Y/n): ' USE_DYNDNS
+    if [ "$USE_DYNDNS" == "Y" ]; then
+      cp extnetip6dns.txt extnetip.txt
     else
-      curl ifconfig.co/ip > extnetip.txt
+      read -p 'External IP (leave blank to discover): ' WIREGUARD_IP
+      if [ -n "$WIREGUARD_IP" ]; then
+        echo $WIREGUARD_IP > extnetip.txt
+      else
+        curl -6 ifconfig.co/ip > extnetip.txt
+      fi
+    fi
+  else
+    read -p 'Use DYNDNS? (Y/n): ' USE_DYNDNS
+    if [ "$USE_DYNDNS" == "Y" ]; then
+      cp extnetip4dns.txt extnetip.txt
+    else
+      read -p 'External IP (leave blank to discover): ' WIREGUARD_IP
+      if [ -n "$WIREGUARD_IP" ]; then
+        echo $WIREGUARD_IP > extnetip.txt
+      else
+        curl -4 ifconfig.co/ip > extnetip.txt
+      fi
     fi
   fi
 
